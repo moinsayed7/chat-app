@@ -12,10 +12,9 @@ async function authMiddleware(req, res, next) {
     verification = await jwt.verify(token, process.env.JWT_SECRET);
   } catch {
     return res.status(401).json({ error: "Token" });
-  }
-  console.log(verification)
+  };
 
-  req.user= verification
+  req.user= verification;
   next();
 
 
