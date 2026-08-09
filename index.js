@@ -15,6 +15,45 @@ const infoValidator = require("./lib/infoValidation");
 app.use(express.json());
 app.use(cookieParser());
 
+app.get("/message/:conversationId", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const convoId = req.params.conversationId;
+
+    const convo = await Conversation.findOne({
+      _id: convoId,
+      participants: userId,
+    });
+
+    if (!convo) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+
+    const messages = await Message.find({ roomId: convo._id }).sort({
+      createdAt: 1,
+    });
+
+    res.status(200).json({ data: messages });
+
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/conversations", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const conversations = await Conversation.find({ participants: req.user.id })
+      .populate("participants", "-password")
+      .populate("lastMessageId");
+
+    res.status(200).json({ data: conversations });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.post("/messages", authMiddleware, async (req, res) => {
   try {
     const senderId = req.user.id;
@@ -31,7 +70,8 @@ app.post("/messages", authMiddleware, async (req, res) => {
     const getReceiverUser = await User.findOne({ _id: receiverId });
 
     if (!getReceiverUser) {
-      return res.status(404).json({ error: "Receiver user not found" });    }
+      return res.status(404).json({ error: "Receiver user not found" });
+    }
 
     let conversation = await Conversation.findOne({
       participants: { $all: [senderId, receiverId] },
