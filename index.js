@@ -196,4 +196,31 @@ app.post("/auth/login", async (req, res) => {
     .json({ message: "Successfully logged in", username: getUser.username });
 });
 
-app.listen(3000, () => console.log("Server running on port 3000"));
+io.use((socket, next) => {
+  const cookies = require('cookie').parse(socket.handshake.headers.cookie || '');
+  const token = cookies.token;
+
+  if (!token) {
+    return next(new Error('No token'));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;
+    next();
+  } catch {
+    next(new Error('Invalid token'));
+  }
+});
+
+
+
+
+
+const http = require('http');
+const { Server } = require('socket.io');
+
+const server = http.createServer(app);
+const io = new Server(server);
+
+server.listen(3000, () => console.log('Server running on port 3000'));
