@@ -11,6 +11,7 @@ const cookieParser = require("cookie-parser");
 const Conversation = require("./models/Conversation");
 const Message = require("./models/Message");
 const infoValidator = require("./lib/infoValidation");
+const createMessage = require("./services/messageService");
 
 app.use(express.json());
 app.use(cookieParser());
@@ -34,7 +35,6 @@ app.get("/message/:conversationId", authMiddleware, async (req, res) => {
     });
 
     res.status(200).json({ data: messages });
-
   } catch {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -57,51 +57,24 @@ app.get("/conversations", authMiddleware, async (req, res) => {
 app.post("/messages", authMiddleware, async (req, res) => {
   try {
     const senderId = req.user.id;
-    const data = req.body;
-
-    const parsed = infoValidator.safeParse(data);
+    const parsed = infoValidator.safeParse(req.body);
 
     if (!parsed.success) {
       return res.status(400).json({ error: "Invalid data format" });
     }
 
-    const receiverId = parsed.data.receiverId;
-
-    const getReceiverUser = await User.findOne({ _id: receiverId });
-
-    if (!getReceiverUser) {
-      return res.status(404).json({ error: "Receiver user not found" });
-    }
-
-    let conversation = await Conversation.findOne({
-      participants: { $all: [senderId, receiverId] },
-    });
-
-    if (!conversation) {
-      conversation = await Conversation.create({
-        participants: [senderId, receiverId],
-      });
-    }
-
-    const msg = await Message.create({
-      roomId: conversation._id,
-      senderId: senderId,
-      text: parsed.data.text,
-    });
-
-    await Conversation.updateOne(
-      { _id: conversation._id },
-      {
-        $set: {
-          lastMessageId: msg._id,
-          lastMessageAt: Date.now(),
-        },
-      },
+    const msg = await createMessage(
+      senderId,
+      parsed.data.receiverId,
+      parsed.data.text,
     );
 
     res.status(201).json({ message: "Message created", roomId: msg.roomId });
   } catch (err) {
-    res.status(500).json({ error: "Internal server error" });
+    if (err.message === "Receiver user not found")
+      return res.status(404).json({ error: "Receiver user not found" });
+
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -185,6 +158,8 @@ app.post("/auth/login", async (req, res) => {
     expiresIn: "1d",
   });
 
+  console.log(token)
+
   res.cookie("token", token, {
     httpOnly: true,
     secure: false,
@@ -196,12 +171,60 @@ app.post("/auth/login", async (req, res) => {
     .json({ message: "Successfully logged in", username: getUser.username });
 });
 
+
+
+const http = require("http");
+const { Server } = require("socket.io");
+
+const server = http.createServer(app);
+const io = new Server(server);
+
+const onlineUsers = {};
+
+io.on("connection", (socket) => {
+  onlineUsers[socket.user.id] = socket.id;
+
+  socket.on("sendMessage", async (data) => {
+    let receiverSocketId;
+    try {
+      const userId = socket.user.id;
+      const parsed = infoValidator.safeParse(data);
+
+      if (!parsed.success) {
+        return socket.emit("messageError", "Wrong data format");
+      }
+
+      receiverSocketId = onlineUsers[parsed.data.receiverId];
+
+      const createdMsg = await createMessage(
+        userId,
+        parsed.data.receiverId,
+        parsed.data.text,
+      );
+
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("newMessage", createdMsg);
+      }
+
+      socket.emit("messageSent", createdMsg);
+    } catch (err) {
+      socket.emit("messageError", err.message);
+    }
+  });
+
+  socket.on("disconnect", async () => {
+    delete onlineUsers[socket.user.id];
+  });
+});
+
 io.use((socket, next) => {
-  const cookies = require('cookie').parse(socket.handshake.headers.cookie || '');
+  const cookies = require("cookie").parseCookie(
+    socket.handshake.headers.cookie || "",
+  );
   const token = cookies.token;
 
   if (!token) {
-    return next(new Error('No token'));
+    return next(new Error("No token"));
   }
 
   try {
@@ -209,18 +232,8 @@ io.use((socket, next) => {
     socket.user = decoded;
     next();
   } catch {
-    next(new Error('Invalid token'));
+    next(new Error("Invalid token"));
   }
 });
 
-
-
-
-
-const http = require('http');
-const { Server } = require('socket.io');
-
-const server = http.createServer(app);
-const io = new Server(server);
-
-server.listen(3000, () => console.log('Server running on port 3000'));
+server.listen(3000, () => console.log("Server running on port 3000"));
