@@ -12,9 +12,17 @@ const Conversation = require("./models/Conversation");
 const Message = require("./models/Message");
 const infoValidator = require("./lib/infoValidation");
 const createMessage = require("./services/messageService");
+const cors = require("cors");
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use(
+  cors({
+    origin: "http://localhost:3001",
+    credentials: true,
+  }),
+);
 
 app.get("/message/:conversationId", authMiddleware, async (req, res) => {
   try {
@@ -91,7 +99,7 @@ app.post("/auth/register", async (req, res) => {
   try {
     existingUser = await User.findOne({ email: parsed.data.email });
   } catch {
-    return res.status(500).json({ error: "Internal error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
 
   if (existingUser) {
@@ -158,7 +166,7 @@ app.post("/auth/login", async (req, res) => {
     expiresIn: "1d",
   });
 
-  console.log(token)
+  console.log(token);
 
   res.cookie("token", token, {
     httpOnly: true,
@@ -170,8 +178,6 @@ app.post("/auth/login", async (req, res) => {
     .status(200)
     .json({ message: "Successfully logged in", username: getUser.username });
 });
-
-
 
 const http = require("http");
 const { Server } = require("socket.io");
@@ -237,3 +243,12 @@ io.use((socket, next) => {
 });
 
 server.listen(3000, () => console.log("Server running on port 3000"));
+
+
+// test id
+
+// email:
+// rahul@test.com
+
+// pass:
+// rahul@test.com
