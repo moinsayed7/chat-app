@@ -170,7 +170,7 @@ app.post("/auth/login", async (req, res) => {
 
   res.cookie("token", token, {
     httpOnly: true,
-    secure: false,
+    secure: true,
     sameSite: "none",
   });
 
@@ -252,3 +252,15 @@ server.listen(3000, () => console.log("Server running on port 3000"));
 
 // pass:
 // rahul@test.com
+
+// {
+//   "username": "sarahtest",
+//   "email": "sarah@test.com",
+//   "password": "testpassword123"
+// }
+
+
+// {
+//   "email": "moin@test.com",
+//   "password": "testpassword123"
+// }
