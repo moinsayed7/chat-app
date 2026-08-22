@@ -86,6 +86,26 @@ app.post("/messages", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/conversation/:conversationId", authMiddleware, async (req, res) => {
+  const currentUserId = req.user.id;
+  const convoId = req.params.conversationId;
+
+  let convo;
+
+  try {
+    convo = await Conversation.findOne({
+      _id: convoId,
+      participants: currentUserId,
+    })
+      .populate("participants", "-password")
+      .populate("lastMessageId");
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
+  }
+
+  res.status(200).json({data:convo})
+});
+
 app.post("/auth/register", async (req, res) => {
   const data = req.body;
 
@@ -244,7 +264,6 @@ io.use((socket, next) => {
 
 server.listen(3000, () => console.log("Server running on port 3000"));
 
-
 // test id
 
 // email:
@@ -258,7 +277,6 @@ server.listen(3000, () => console.log("Server running on port 3000"));
 //   "email": "sarah@test.com",
 //   "password": "testpassword123"
 // }
-
 
 // {
 //   "email": "moin@test.com",
