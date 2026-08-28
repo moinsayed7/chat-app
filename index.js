@@ -13,6 +13,16 @@ const Message = require("./models/Message");
 const infoValidator = require("./lib/infoValidation");
 const createMessage = require("./services/messageService");
 const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3001",
+    credentials: true,
+  },
+});
 
 app.use(express.json());
 app.use(cookieParser());
@@ -103,7 +113,7 @@ app.get("/conversation/:conversationId", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 
-  res.status(200).json({data:convo})
+  res.status(200).json({ data: convo });
 });
 
 app.post("/auth/register", async (req, res) => {
@@ -199,12 +209,6 @@ app.post("/auth/login", async (req, res) => {
     .json({ message: "Successfully logged in", username: getUser.username });
 });
 
-const http = require("http");
-const { Server } = require("socket.io");
-
-const server = http.createServer(app);
-const io = new Server(server);
-
 const onlineUsers = {};
 
 io.on("connection", (socket) => {
@@ -221,6 +225,9 @@ io.on("connection", (socket) => {
       }
 
       receiverSocketId = onlineUsers[parsed.data.receiverId];
+
+      console.log("Message received from:", userId);
+      console.log("Receiver online?", !!receiverSocketId, receiverSocketId);
 
       const createdMsg = await createMessage(
         userId,
