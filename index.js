@@ -58,6 +58,30 @@ app.get("/message/:conversationId", authMiddleware, async (req, res) => {
   }
 });
 
+app.get("/conversation/with/:receiverId", authMiddleware, async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+    const receiverId = req.params.receiverId;
+
+    const isReceiverId = await User.findOne({ _id: receiverId });
+
+    if (!isReceiverId) {
+      res.status(404).json({ error: "No User found with receiver Id" });
+      return;
+    }
+
+    const findConvo = await Conversation.findOne({
+      participants: { $all: [currentUserId, receiverId] },
+    })
+      .populate("participants", "-password")
+      .populate("lastMessageId");
+
+    res.status(200).json({ convoExist: !!findConvo, data: findConvo });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/conversations", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -114,6 +138,17 @@ app.get("/conversation/:conversationId", authMiddleware, async (req, res) => {
   }
 
   res.status(200).json({ data: convo });
+});
+
+app.get("/user", async (req, res) => {
+  const currentUserId = req.user.id;
+  const search = req.body.search;
+
+  const users = await User.find({
+    _id: { $ne: req.user.id },
+    username: { $regex: search, $options: "i" },
+  }).select("-password");
+  
 });
 
 app.post("/auth/register", async (req, res) => {
@@ -196,8 +231,6 @@ app.post("/auth/login", async (req, res) => {
     expiresIn: "1d",
   });
 
-  console.log(token);
-
   res.cookie("token", token, {
     httpOnly: true,
     secure: true,
@@ -225,9 +258,6 @@ io.on("connection", (socket) => {
       }
 
       receiverSocketId = onlineUsers[parsed.data.receiverId];
-
-      console.log("Message received from:", userId);
-      console.log("Receiver online?", !!receiverSocketId, receiverSocketId);
 
       const createdMsg = await createMessage(
         userId,
