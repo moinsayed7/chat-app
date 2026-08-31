@@ -140,15 +140,26 @@ app.get("/conversation/:conversationId", authMiddleware, async (req, res) => {
   res.status(200).json({ data: convo });
 });
 
-app.get("/user", async (req, res) => {
-  const currentUserId = req.user.id;
-  const search = req.body.search;
+app.get("/users",authMiddleware, async (req, res) => {
+  try {
+    const currentUserId = req.user.id;
+    const search = req.query.search;
 
-  const users = await User.find({
-    _id: { $ne: req.user.id },
-    username: { $regex: search, $options: "i" },
-  }).select("-password");
-  
+    if (!search) {
+      res.status(200).json({ success: false });
+      return;
+    }
+
+    const query = { _id: { $ne: currentUserId } };
+
+    query.username = { $regex: search, $options: "i" };
+
+    const users = await User.find(query).select("-password");
+
+    res.status(200).json({ success: true, data: users });
+  } catch {
+    res.status(500).json({ error: "Something went wrong " });
+  }
 });
 
 app.post("/auth/register", async (req, res) => {
