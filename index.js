@@ -1,4 +1,5 @@
 const express = require("express");
+require("dotenv").config();
 const app = express();
 const db = require("./db");
 const val = require("./lib/registrationValid");
@@ -19,7 +20,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3001",
+    origin: `${process.env.FRONTEND_URL}`,
     credentials: true,
   },
 });
@@ -29,7 +30,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: "http://localhost:3001",
+    origin: `${process.env.FRONTEND_URL}`,
     credentials: true,
   }),
 );
@@ -140,7 +141,7 @@ app.get("/conversation/:conversationId", authMiddleware, async (req, res) => {
   res.status(200).json({ data: convo });
 });
 
-app.get("/users",authMiddleware, async (req, res) => {
+app.get("/users", authMiddleware, async (req, res) => {
   try {
     const currentUserId = req.user.id;
     const search = req.query.search;
@@ -256,7 +257,10 @@ app.post("/auth/login", async (req, res) => {
 const onlineUsers = {};
 
 io.on("connection", (socket) => {
-  onlineUsers[socket.user.id] = socket.id;
+  if(!onlineUsers[socket.user.id]){
+    onlineUsers[socket.user.id]=[]
+  }
+  onlineUsers[socket.user.id].push(socket.id);
 
   socket.on("sendMessage", async (data) => {
     let receiverSocketId;
@@ -277,7 +281,9 @@ io.on("connection", (socket) => {
       );
 
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit("newMessage", createdMsg);
+        receiverSocketId.forEach((ele) => {
+          io.to(ele).emit("newMessage", createdMsg);
+        });
       }
 
       socket.emit("messageSent", createdMsg);
@@ -287,7 +293,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", async () => {
-    delete onlineUsers[socket.user.id];
+    const newArr = onlineUsers[socket.user.id].filter(
+      (ele) => ele !== socket.id,
+    );
+    onlineUsers[socket.user.id] = newArr;
   });
 });
 
@@ -310,7 +319,9 @@ io.use((socket, next) => {
   }
 });
 
-server.listen(3000, () => console.log("Server running on port 3000"));
+const PORT= process.env.PORT || 3000
+
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // test id
 
@@ -330,3 +341,9 @@ server.listen(3000, () => console.log("Server running on port 3000"));
 //   "email": "moin@test.com",
 //   "password": "testpassword123"
 // }
+
+
+// email:
+// raj@test.com
+// pass:
+//  raj@test.com
