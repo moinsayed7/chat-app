@@ -20,7 +20,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: `${process.env.FRONTEND_URL}`,
+    origin:[`${process.env.FRONTEND_URL}`, "http://localhost:3001"],
     credentials: true,
   },
 });
@@ -30,7 +30,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: `${process.env.FRONTEND_URL}`,
+    origin:[`${process.env.FRONTEND_URL}`, "http://localhost:3001"],
     credentials: true,
   }),
 );
@@ -91,7 +91,7 @@ app.get("/conversations", authMiddleware, async (req, res) => {
       .populate("participants", "-password")
       .populate("lastMessageId");
 
-    res.status(200).json({ data: conversations });
+    res.status(200).json({ currentUserId: userId, data: conversations });
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
