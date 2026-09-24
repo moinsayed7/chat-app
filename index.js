@@ -53,7 +53,7 @@ app.get("/message/:conversationId", authMiddleware, async (req, res) => {
       createdAt: 1,
     });
 
-    res.status(200).json({ data: messages });
+    res.status(200).json({ data: messages, currentUserId:userId });
   } catch {
     res.status(500).json({ error: "Internal server error" });
   }
