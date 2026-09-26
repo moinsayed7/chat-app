@@ -77,7 +77,7 @@ app.get("/conversation/with/:receiverId", authMiddleware, async (req, res) => {
       .populate("participants", "-password")
       .populate("lastMessageId");
 
-    res.status(200).json({ convoExist: !!findConvo, data: findConvo });
+    res.status(200).json({ convoExist: !!findConvo, data: findConvo, currentUserId:currentUserId });
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
