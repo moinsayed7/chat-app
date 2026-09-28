@@ -77,3 +77,5 @@ node index.js
 
 - Deployed on Render, which requires reading `process.env.PORT` (Render assigns the port at runtime) rather than a hardcoded value, with a local fallback.
 - MongoDB Atlas's IP access list needs `0.0.0.0/0` (or Render's IP range, if known and stable) since Render's outbound IP isn't fixed on the free tier.
+
+
