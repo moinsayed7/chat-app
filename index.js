@@ -20,7 +20,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin:[`${process.env.FRONTEND_URL}`, "http://localhost:3001"],
+    origin: [`${process.env.FRONTEND_URL}`, "http://localhost:3001"],
     credentials: true,
   },
 });
@@ -30,7 +30,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin:[`${process.env.FRONTEND_URL}`, "http://localhost:3001"],
+    origin: [`${process.env.FRONTEND_URL}`, "http://localhost:3001"],
     credentials: true,
   }),
 );
@@ -77,7 +77,11 @@ app.get("/conversation/with/:receiverId", authMiddleware, async (req, res) => {
       .populate("participants", "-password")
       .populate("lastMessageId");
 
-    res.status(200).json({ convoExist: !!findConvo, data: findConvo, currentUserId:currentUserId });
+    res.status(200).json({
+      convoExist: !!findConvo,
+      data: findConvo,
+      currentUserId: currentUserId,
+    });
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
@@ -89,7 +93,8 @@ app.get("/conversations", authMiddleware, async (req, res) => {
 
     const conversations = await Conversation.find({ participants: req.user.id })
       .populate("participants", "-password")
-      .populate("lastMessageId");
+      .populate("lastMessageId")
+      .sort({ lastMessageAt: -1 });
 
     res.status(200).json({ currentUserId: userId, data: conversations });
   } catch (err) {
@@ -254,11 +259,17 @@ app.post("/auth/login", async (req, res) => {
     .json({ message: "Successfully logged in", username: getUser.username });
 });
 
+app.get("/auth/me", authMiddleware, (req, res) => {
+  const user = req.user?.id;
+
+  res.status(200).json({ data: user, isLoggedIn: true });
+});
+
 const onlineUsers = {};
 
 io.on("connection", (socket) => {
-  if(!onlineUsers[socket.user.id]){
-    onlineUsers[socket.user.id]=[]
+  if (!onlineUsers[socket.user.id]) {
+    onlineUsers[socket.user.id] = [];
   }
   onlineUsers[socket.user.id].push(socket.id);
 
@@ -319,7 +330,7 @@ io.use((socket, next) => {
   }
 });
 
-const PORT= process.env.PORT || 3000
+const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
@@ -341,7 +352,6 @@ server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 //   "email": "moin@test.com",
 //   "password": "testpassword123"
 // }
-
 
 // email:
 // raj@test.com
