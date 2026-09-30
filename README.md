@@ -3,7 +3,7 @@
 Express + MongoDB + Socket.io backend for a real-time chat application, with hand-rolled JWT authentication — no auth library, no Passport, no Auth.js.
 
 **Frontend repo:** [chat-app-frontend](https://github.com/moinsayed7/chat-app-frontend)
-**Live API:** [chat-app-frontend](https://chat-app-frontend-xi-mauve.vercel.app/)
+**Live API:** [chat-app](https://chat-app-ydxs.onrender.com/)
 
 ---
 
@@ -79,3 +79,8 @@ node index.js
 - MongoDB Atlas's IP access list needs `0.0.0.0/0` (or Render's IP range, if known and stable) since Render's outbound IP isn't fixed on the free tier.
 
 
+## Known limitations
+
+- No rate limiting on `/auth/login` — a production version would add this to prevent brute-force attempts.
+- Login doesn't use a timing-safe comparison when the account doesn't exist, which could allow email enumeration via response timing.
+- JWTs can't be revoked before expiry; a refresh-token pattern would be the next step for real session control.
