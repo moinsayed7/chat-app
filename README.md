@@ -3,7 +3,7 @@
 Express + MongoDB + Socket.io backend for a real-time chat application, with hand-rolled JWT authentication — no auth library, no Passport, no Auth.js.
 
 **Frontend repo:** [chat-app-frontend](https://github.com/moinsayed7/chat-app-frontend)
-**Live API:** [chat-app](https://chat-app-ydxs.onrender.com/)
+**Live API:** [chat-app-frontend](https://chat-app-frontend-xi-mauve.vercel.app/)
 
 ---
 
